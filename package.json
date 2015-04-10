@@ -1,27 +1,27 @@
 {
   "name": "hubot-schtasks",
   "description": "A hubot script that can list, start and stop Windows scheduled tasks (works only on a Windows machine)",
-  "version": "0.0.1",
+  "version": "0.0.2",
   "author": "MatteoSp <mspreafico@gmail.com>",
   "license": "MIT",
-
-  "keywords": ["hubot","hubot-scripts","windows","task scheduler"],
-
+  "keywords": [
+    "hubot",
+    "hubot-scripts",
+    "windows",
+    "task scheduler"
+  ],
   "repository": {
     "type": "git",
     "url": "git://github.com/MatteoSp/hubot-schtasks.git"
   },
-
   "bugs": {
     "url": "https://github.com/MatteoSp/hubot-schtasks/issues"
   },
-
   "dependencies": {
     "coffee-script": "~1.6",
     "csv-parse": "^0.1.0",
     "async": "^0.9.0"
   },
-
   "devDependencies": {
     "mocha": "*",
     "chai": "*",
@@ -30,11 +30,9 @@
     "grunt-mocha-test": "~0.7.0",
     "grunt-release": "~0.6.0",
     "matchdep": "~0.1.2",
-    "grunt-contrib-watch": "~0.5.3"    
+    "grunt-contrib-watch": "~0.5.3"
   },
-
   "main": "index.coffee",
-
   "scripts": {
     "test": "grunt test"
   }
