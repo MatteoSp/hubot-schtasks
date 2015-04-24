@@ -1,7 +1,7 @@
 {
   "name": "hubot-schtasks",
   "description": "A hubot script that can list, start and stop Windows scheduled tasks (works only on a Windows machine)",
-  "version": "0.0.2",
+  "version": "0.0.3",
   "author": "MatteoSp <mspreafico@gmail.com>",
   "license": "MIT",
   "keywords": [

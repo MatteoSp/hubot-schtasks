@@ -162,7 +162,7 @@ module.exports = function(robot) {
             if (err) {
                 msg.reply("ERROR: " + err.toString());
             } else {
-                msg.reply(util.format("Task '%s' %s", msg.match[1], action == '/run' ? 'started' : 'stopped'));
+                msg.reply(util.format("Task '%s' %s", msg.match[1], args.action == '/run' ? 'started' : 'stopped'));
             }
         });
     });
