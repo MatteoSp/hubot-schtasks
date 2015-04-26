@@ -1,7 +1,7 @@
 {
   "name": "hubot-schtasks",
   "description": "A hubot script that can list, start and stop task on different scheduling systems",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "author": "MatteoSp <mspreafico@gmail.com>",
   "license": "MIT",
   "keywords": [

@@ -35,7 +35,7 @@ hubot>> task_2 stopped
 
 ## Configuration
 
-Configuration is based on config `module` (see http://github.com/lorenwest/node-config). An example: 
+Configuration is based on `config` module (see http://github.com/lorenwest/node-config). An example: 
 ```
 {
     "hubot_schtasks": {
