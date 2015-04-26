@@ -1,8 +1,6 @@
 # hubot-schtasks
 
-A hubot script that can list, start and stop Windows scheduled tasks (works only on a Windows machine)
-
-See [`src/schtasks.js`](src/schtasks.js) for full documentation.
+A hubot script that can list, start and stop task on different scheduling systems (currently MS Widows Task Scheduler and MS SQL Server Agent)
 
 ## Installation
 
@@ -26,23 +24,39 @@ task_2 (status: Running). Last run: 10/04/2015 14:00:00 (result: 0), next: 11/04
 ```
 
 ```
-user1>> hubot st run task_1
+user1>> hubot st run task_1 on host_A
 hubot>> task_1 started
 ```
 
 ```
-user1>> hubot st end task_1
-hubot>> task_1 stopped
+user1>> hubot st end task_2 on host_B
+hubot>> task_2 stopped
 ```
 
 ## Configuration
 
-`SCHTASKS_SKIP_SYS_TASKS`: set this to 0 if you don't want sys tasks to be listed, to 1 if you want to see them.
-`SCHTASKS_HOST`, `SCHTASKS_USER` and `SCHTASKS_PWD`: (optionals) set these if the machine you need to manage isn't the one running Hubot.
-
+Configuration is based on config `module` (github.com/lorenwest/node-config). An example: 
+```
+{
+    "hubot_schtasks": {
+        "skipSystemTasks": true,
+        "hosts": [{
+            "type": "WinScheduler",
+            "name": "MyServer",
+            "host": "myServer.myDomain.pri",
+            "user": "username",
+            "pwd": "password"
+        }, {
+            "type": "SqlAgent",
+            "name": "MySqlServer",
+            "host": "mySqlServer.myDomain.pri",
+            "user": "username",
+            "pwd": "password"
+        }]
+    }
+}
+```
 
 ## Mini roadmap
-
-- Multiple host support
-- Host (and maybe credentials) passed on messages
+- Support for Linux cron
 - Some task update facilities (enable/disable, change triggers, etc)

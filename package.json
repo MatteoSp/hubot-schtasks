@@ -1,7 +1,7 @@
 {
   "name": "hubot-schtasks",
-  "description": "A hubot script that can list, start and stop Windows scheduled tasks (works only on a Windows machine)",
-  "version": "0.0.3",
+  "description": "A hubot script that can list, start and stop task on different scheduling systems",
+  "version": "1.0.0",
   "author": "MatteoSp <mspreafico@gmail.com>",
   "license": "MIT",
   "keywords": [
@@ -20,7 +20,9 @@
   "dependencies": {
     "coffee-script": "~1.6",
     "csv-parse": "^0.1.0",
-    "async": "^0.9.0"
+    "async": "^0.9.0",
+    "config": "~1.12.0",
+    "moment": "^2.10.2"
   },
   "devDependencies": {
     "mocha": "*",

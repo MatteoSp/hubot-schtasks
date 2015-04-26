@@ -5,106 +5,40 @@
 //   None
 //
 // Configuration:
-//   SCHTASKS_SKIP_SYS_TASKS, SCHTASKS_HOST, SCHTASKS_USER, SCHTASKS_PWD
 //
 // Commands:
-//   hubot st - Gets scheduled tasks info
-//   hubot st run TASK_NAME - Runs the specified task
-//   hubot st end TASK_NAME - Stops the specified task
+//   hubot st - Gets scheduled tasks info on all configured hosts
+//   hubot st on HOST_NAME - Gets scheduled tasks info on the specified host
+//   hubot st run TASK_NAME on HOST_NAME - Runs the specified task
+//   hubot st end TASK_NAME on HOST_NAME - Stops the specified task
 //
 // Author:
 //   MatteoSp
+
+require('../lib/common');
+
 module.exports = function(robot) {
-    var fs = require('fs'),
-        util =  require('util'),
-        spawn = require("child_process").spawn,
-        async = require('async');
+    var util =  require('util'),      
+        async = require('async'),          
+        config = require('config'),
+        baseConfig = config.get('hubot_schtasks'),
+        hosts = config.get('hubot_schtasks.hosts');;
 
-    var run = function (cmd, args, cb) {
-        var command = spawn(cmd, args),
-            result = '',
-            errors = '';
-
-        command.stdout.on('data', function(data) {
-            result += data.toString();
-        });
-
-        command.stderr.on("data", function(data) {
-            errors += data.toString();
-        });
-
-        command.on('close', function(code) {
-            if (code == 0) {
-                cb(null, result);
-            } else {
-                cb(new Error(util.format('%s. Exit code: %s.', errors, code)));
-            }
-        });
-    };
-
-
-    var getAdditionalInfo = function(taskInfo, callback) {
-        var args = buildParameters({ 
-                action: "/query",
-                additionals: [
-                    '/v',
-                    '/fo', 'list',
-                    '/tn', taskInfo.name
-                ]
-            }),
-            rows;
-
-        run("schtasks.exe", args, function(err, content) {
-            if (err) {
-                callback(err);
-                return;
-            }
-
-            rows = content.split('\r\n');
-
-            taskInfo.lastRun = rows[7].replace(/Last Run Time\:/g, '').trim();
-            taskInfo.lastResult = rows[8].replace(/Last Result\:/g, '').trim();
-            taskInfo.actions = rows[10].replace(/Task To Run\:/g, '').trim();
-
-            callback();
-        });
-    };
-
-
-    var buildParameters = function(baseParams) {
-        var args = [baseParams.action];
-
-        if (baseParams.host || process.env.SCHTASKS_HOST) {
-            args.push('/s');
-            args.push(baseParams.host || process.env.SCHTASKS_HOST);
+    hosts.forEach(function(item, index, array) {
+        if (item.skipSystemTasks == undefined) {
+            item.skipSystemTasks = baseConfig.skipSystemTasks;
         }
+    });
 
-        if (baseParams.user || process.env.SCHTASKS_USER) {
-            args.push('/u');
-            args.push(baseParams.user || process.env.SCHTASKS_USER);
-        }
-
-        if (baseParams.pwd || process.env.SCHTASKS_PWD) {
-            args.push('/p');
-            args.push(baseParams.pwd || process.env.SCHTASKS_PWD);
-        }
-
-        if (baseParams.additionals) {
-            args.push.apply(args, baseParams.additionals); //add range
-        }
-
-        return args;
-    };
-
-
-    var sendTaskList = function(msg, tasks) {
+    var sendTaskList = function(msg, targets, tasks) {
         var output = '';
 
         tasks.forEach(function(taskInfo, index, array) {
             output = util.format(
-                '%s %s (status: %s). Last run: %s (result: %s), next: %s.\r\n', 
+                '%s %s%s (status: %s). Last run: %s (result: %s), next: %s.\r\n', 
                 output, 
                 taskInfo.name, 
+                targets.length > 1 ? '@' + taskInfo.hostName : '',
                 taskInfo.status,
                 taskInfo.lastRun,
                 taskInfo.lastResult,
@@ -115,55 +49,89 @@ module.exports = function(robot) {
         msg.reply(output);
     };
 
-    robot.respond(/st$/i, function(msg) {
-        var args = buildParameters({ 
-            action:"/query",
-            additionals: ['/fo', 'csv']
-        });
+    var createAdapter = function(host) {
+        var hostConfig,
+            adapterModule;
 
-        run("schtasks.exe", args, function(err, content) {
-            var parse = require('csv-parse'),
-                tasks = [];
-
-            var parser = parse(content, { delimiter: ',' }, function(err, data){
-                if (err) {
-                    console.log(err);
-                    return;
-                }
-
-                data.forEach(function(item, index, array) {
-                    if (item[0] == 'TaskName') {
-                        return;
-                    }
-
-                    if (!process.env.SCHTASKS_SKIP_SYS_TASKS || item[0].substring(0, 10) != '\\Microsoft') {
-                        tasks.push({
-                            name: item[0],
-                            nextRun: item[1],
-                            status: item[2]
-                        });
-                    }
-                });
-
-                async.map(tasks, getAdditionalInfo, function(err, result) {
-                    sendTaskList(msg, tasks);
-                });
+        if (typeof host == 'string') {
+            hostConfig = hosts.find(function(item) {
+                return item.name == host;
             });
+
+            if (!hostConfig) {
+                return console.log("Unknown host: " + host);
+            }
+        } else {
+            hostConfig = host;
+        }
+
+        adapterModule = require('../lib/adapters/' + hostConfig.type);
+
+        if (! adapterModule) {
+            return console.log("Unknow host type: " + hostConfig.type);
+        }
+
+        return new adapterModule.adapter(hostConfig);
+    };
+
+    robot.respond(/st\s*(on (.[^\s]+))*$/i, function(msg) {
+        var hostName = msg.match[2],
+            tasks = [],
+            targets;
+
+        if (hostName) {
+            targets = hosts.filter(function(item) {
+                return item.name == hostName;
+            });
+        } else {
+            targets = hosts;
+        }
+
+        var collectTasks = function(hostConfig, callback) {
+            var adapter = createAdapter(hostConfig);
+
+            if (! adapter) {
+                return callback(null, null);
+            }
+
+            console.log("listing tasks on " + hostConfig.host);
+
+            adapter.list(callback);
+        };
+
+        async.map(targets, collectTasks, function(err, results) {
+            results.forEach(function(hostTasks) {
+                tasks.push.apply(tasks, hostTasks);
+            });
+
+            sendTaskList(msg, targets, tasks);
         });
     });
 
-    robot.respond(/st (run|end) (.+)/i, function(msg) {
-        var args = buildParameters({
-            action: "/" + msg.match[1],
-            additionals: ['/tn', msg.match[2]]
-        });
 
-        run("schtasks.exe", args, function(err, content) {
+    robot.respond(/st (run|end) (.+) on (.+)/i, function(msg) {
+        var action = msg.match[1],
+            taskName = msg.match[2],
+            host = msg.match[3],
+            adapter = createAdapter(host),
+            callback;
+
+        if (!adapter) {
+            return msg.reply("Unknown host: " + host);
+        }
+
+        callback = function(err, content) {
             if (err) {
                 msg.reply("ERROR: " + err.toString());
             } else {
-                msg.reply(util.format("Task '%s' %s", msg.match[1], args.action == '/run' ? 'started' : 'stopped'));
+                msg.reply(util.format("Task '%s' %s", taskName, action == 'run' ? 'started' : 'stopped'));
             }
-        });
+        };
+
+        if (action == 'run') {
+            adapter.start(taskName, callback);
+        } else {
+            adapter.stop(taskName, callback);
+        }
     });
 }
