@@ -22,7 +22,7 @@ module.exports = function(robot) {
         async = require('async'),          
         config = require('config'),
         baseConfig = config.get('hubot_schtasks'),
-        hosts = config.get('hubot_schtasks.hosts');;
+        hosts = config.get('hubot_schtasks.hosts');
 
     hosts.forEach(function(item, index, array) {
         if (item.skipSystemTasks == undefined) {
