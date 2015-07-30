@@ -51,7 +51,8 @@ Configuration is based on `config` module (see http://github.com/lorenwest/node-
             "name": "MySqlServer",
             "host": "mySqlServer.myDomain.pri",
             "user": "username",
-            "pwd": "password"
+            "pwd": "password",
+            "instanceName": "myInstance" /*optional*/
         }]
     }
 }
