@@ -56,7 +56,7 @@ module.exports = function(robot) {
 
         if (typeof host == 'string') {
             hostConfig = hosts.find(function(item) {
-                return item.name == host;
+                return (item.name || '').toUpperCase() == host.toUpperCase();
             });
 
             if (!hostConfig) {
