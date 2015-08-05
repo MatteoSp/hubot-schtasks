@@ -1,14 +1,16 @@
 {
   "name": "hubot-schtasks",
   "description": "A hubot script that can list, start and stop task on different scheduling systems",
-  "version": "1.0.3",
+  "version": "1.0.4",
   "author": "MatteoSp <mspreafico@gmail.com>",
   "license": "MIT",
   "keywords": [
     "hubot",
     "hubot-scripts",
     "windows",
-    "task scheduler"
+    "task scheduler",
+    "SQL Server Agent", 
+    "SqlAgent"
   ],
   "repository": {
     "type": "git",
