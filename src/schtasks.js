@@ -11,6 +11,7 @@
 //   hubot st on HOST_NAME - Gets scheduled tasks info on the specified host
 //   hubot st run TASK_NAME on HOST_NAME - Runs the specified task
 //   hubot st end TASK_NAME on HOST_NAME - Stops the specified task
+//   hubot st hosts - Gets the list of all configured hosts
 //
 // Author:
 //   MatteoSp
@@ -133,5 +134,21 @@ module.exports = function(robot) {
         } else {
             adapter.stop(taskName, callback);
         }
+    });
+
+    robot.respond(/st hosts/i, function(msg) {
+        var output = '',
+            hostAddress;
+
+        hosts.forEach(function(item, index, array) {
+            hostAddress = item.host;
+            if (item.instanceName) {
+                hostAddress += '\\' + item.instanceName;
+            }
+
+            output += util.format('\r\n%s: %s @ %s.', item.name, item.type, hostAddress);
+        });
+
+        msg.reply(output);
     });
 }
