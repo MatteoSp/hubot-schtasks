@@ -1,7 +1,7 @@
 {
   "name": "hubot-schtasks",
-  "description": "A hubot script that can list, start and stop task on different scheduling systems",
-  "version": "1.0.4",
+  "description": "A hubot script that can list, start and stop task on different scheduling systems. Replies can be customized to fully integrate with your favourite chat, with Slack supported out-of-the-box.",
+  "version": "1.1.0",
   "author": "MatteoSp <mspreafico@gmail.com>",
   "license": "MIT",
   "keywords": [
@@ -10,7 +10,8 @@
     "windows",
     "task scheduler",
     "SQL Server Agent", 
-    "SqlAgent"
+    "SqlAgent",
+    "Slack"
   ],
   "repository": {
     "type": "git",

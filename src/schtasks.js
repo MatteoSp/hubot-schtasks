@@ -16,39 +16,39 @@
 // Author:
 //   MatteoSp
 
-require('../lib/common');
-
 module.exports = function(robot) {
-    var util =  require('util'),      
+    var common = require('../lib/common'),
+        util =  require('util'),      
         async = require('async'),          
         config = require('config'),
         baseConfig = config.get('hubot_schtasks'),
-        hosts = config.get('hubot_schtasks.hosts');
+        hosts = config.get('hubot_schtasks.hosts'),
+        responderConfig, responderModule;
 
-    hosts.forEach(function(item, index, array) {
-        if (item.skipSystemTasks == undefined) {
-            item.skipSystemTasks = baseConfig.skipSystemTasks;
-        }
-    });
-
-    var sendTaskList = function(msg, targets, tasks) {
-        var output = '';
-
-        tasks.forEach(function(taskInfo, index, array) {
-            output = util.format(
-                '%s %s%s (status: %s). Last run: %s (result: %s), next: %s.\r\n', 
-                output, 
-                taskInfo.name, 
-                targets.length > 1 ? '@' + taskInfo.hostName : '',
-                taskInfo.status,
-                taskInfo.lastRun,
-                taskInfo.lastResult,
-                taskInfo.nextRun
-            );
+    var initialize = (function() {
+        hosts.forEach(function(item, index, array) {
+            if (item.skipSystemTasks == undefined) {
+                item.skipSystemTasks = baseConfig.skipSystemTasks;
+            }
         });
 
-        msg.reply(output);
-    };
+        if (config.has('hubot_schtasks.responder')) {
+            responderConfig = config.get('hubot_schtasks.responder');
+        } else {            
+            responderConfig = {
+                type: robot.adapterName == 'slack' ? 'Slack' : 'Shell'
+            }
+        }
+
+        responderModule = common.safeRequire(process.cwd() + '/config/' + responderConfig.type);
+        if (!responderModule) {
+            responderModule = common.safeRequire('../lib/responders/' + responderConfig.type);        
+        }
+
+        if (! responderModule) {
+            throw new Error("Unknown responder type: " + responderConfig.type);
+        }
+    })();
 
     var createAdapter = function(host) {
         var hostConfig,
@@ -66,7 +66,7 @@ module.exports = function(robot) {
             hostConfig = host;
         }
 
-        adapterModule = require('../lib/adapters/' + hostConfig.type);
+        adapterModule = common.safeRequire('../lib/adapters/' + hostConfig.type);
 
         if (! adapterModule) {
             return console.log("Unknow host type: " + hostConfig.type);
@@ -74,6 +74,11 @@ module.exports = function(robot) {
 
         return new adapterModule.adapter(hostConfig);
     };
+
+    var createResponder = function(msg) {
+        return new responderModule.responder(responderConfig);
+    };
+
 
     robot.respond(/st\s*(on (.[^\s]+))*$/i, function(msg) {
         var hostName = msg.match[2],
@@ -95,7 +100,7 @@ module.exports = function(robot) {
                 return callback(null, null);
             }
 
-            console.log("listing tasks on " + hostConfig.host);
+            console.log("listing tasks on " + hostConfig.namne);
 
             adapter.list(callback);
         };
@@ -105,7 +110,9 @@ module.exports = function(robot) {
                 tasks.push.apply(tasks, hostTasks);
             });
 
-            sendTaskList(msg, targets, tasks);
+            var responder = createResponder(msg);
+
+            responder.sendTaskList(msg, targets, tasks);
         });
     });
 
@@ -115,17 +122,18 @@ module.exports = function(robot) {
             taskName = msg.match[2],
             host = msg.match[3],
             adapter = createAdapter(host),
+            responder = createResponder(msg),
             callback;
 
         if (!adapter) {
-            return msg.reply("Unknown host: " + host);
+            return responder.sendError(msg, "Unknown host: " + host);
         }
 
         callback = function(err, content) {
             if (err) {
-                msg.reply("ERROR: " + err.toString());
+                responder.sendError(msg, err.toString());
             } else {
-                msg.reply(util.format("Task '%s' %s", taskName, action == 'run' ? 'started' : 'stopped'));
+                responder.sendStartStop(msg, taskName, action);
             }
         };
 
@@ -137,18 +145,7 @@ module.exports = function(robot) {
     });
 
     robot.respond(/st hosts/i, function(msg) {
-        var output = '',
-            hostAddress;
-
-        hosts.forEach(function(item, index, array) {
-            hostAddress = item.host;
-            if (item.instanceName) {
-                hostAddress += '\\' + item.instanceName;
-            }
-
-            output += util.format('\r\n%s: %s @ %s.', item.name, item.type, hostAddress);
-        });
-
-        msg.reply(output);
+        var responder = createResponder(msg);
+        responder.sendHostList(msg, hosts);
     });
 }
